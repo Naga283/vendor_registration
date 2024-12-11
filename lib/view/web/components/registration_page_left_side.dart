@@ -199,19 +199,17 @@ class RegistrationPageLeftSideColumn extends ConsumerWidget {
             Center(
               child: ExpandedElevatedBtn(
                 btnName: "Next",
-                onTap:
-                    //  !isNextBtnEnabled
-                    //     ? () {}
-                    //     :
-                    () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) {
-                        return const VerifyEmailScreen();
+                onTap: !isNextBtnEnabled
+                    ? () {}
+                    : () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) {
+                              return const VerifyEmailScreen();
+                            },
+                          ),
+                        );
                       },
-                    ),
-                  );
-                },
                 btnHeight: 43,
                 bgCol: isNextBtnEnabled
                     ? appColors.darkOrange

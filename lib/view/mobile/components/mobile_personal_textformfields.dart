@@ -4,6 +4,7 @@ import 'package:vendor_registration/common/vender_textformfield.dart';
 import 'package:vendor_registration/providers/is_send_btn_visible_state_provider.dart';
 import 'package:vendor_registration/utils/colors.dart';
 import 'package:vendor_registration/utils/screen_utils.dart';
+import 'package:vendor_registration/utils/validations.dart';
 
 class MobilePersonalDetailsTextformfield extends ConsumerWidget {
   const MobilePersonalDetailsTextformfield({
@@ -32,7 +33,13 @@ class MobilePersonalDetailsTextformfield extends ConsumerWidget {
       height: screenUtils.height(context) * 0.0185,
     );
     var width = screenUtils.width(context) * 0.6548;
+    validPersonal() {
+      final isValidAad = validateAadhaar(aadhaarCardController.text) == null;
+      print("is valid :: $isValidAad");
+      ref.read(isAadhaarvalidStateProvider.notifier).state = isValidAad;
+    }
 
+    aadhaarCardController.addListener(validPersonal);
     return Card(
       color: appColors.whiteColor,
       child: Padding(
@@ -108,19 +115,15 @@ class MobilePersonalDetailsTextformfield extends ConsumerWidget {
                   isTitleRequired: true,
                   maxLength: 12,
                   keyboardType: TextInputType.number,
-                  validator: (v) {
-                    if ((v?.isEmpty ?? false) || v!.length < 12) {
-                      ref.read(isAadhaarvalidStateProvider.notifier).state =
-                          false;
-                      return "Please enter valid aadhaar number";
-                    } else {
-                      // ref.read(isAadhaarvalidStateProvider.notifier).state =
-                      //     true;
-                      return null;
-                    }
-                  },
+                  validator: validateAadhaar,
                   suffixIcon: isAadhaarValid
-                      ? const Icon(Icons.check_circle_outline_rounded)
+                      ? const Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: const Icon(
+                            Icons.check_circle_outline_rounded,
+                            color: Colors.green,
+                          ),
+                        )
                       : null,
                   textEditingController: aadhaarCardController,
                 ),
