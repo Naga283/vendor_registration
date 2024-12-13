@@ -104,6 +104,7 @@ class RegistrationPageLeftSideColumn extends ConsumerWidget {
                 isSendBtnVisible: isSendBtnVisible,
                 confirmPasswordController: confirmPasswordController,
                 passwordController: passwordController,
+                referralNumber: referenceCode,
               ),
 
               // sizedBoxWithLow,
@@ -113,6 +114,7 @@ class RegistrationPageLeftSideColumn extends ConsumerWidget {
                       child: OTPWidget(
                         formKey: otpFormField,
                         otpFieldControllers: otpFormFieldsListController,
+                        emailController: emailIdController,
                       ),
                     )
                   : const SizedBox.shrink(),

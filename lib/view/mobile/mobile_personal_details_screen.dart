@@ -1,8 +1,15 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:vendor_registration/common/expanded_btn.dart';
+import 'package:vendor_registration/common/scaffold_message.dart';
+import 'package:vendor_registration/constants/api_constants.dart';
 import 'package:vendor_registration/constants/image_names.dart';
+import 'package:vendor_registration/providers/images_provider.dart';
 import 'package:vendor_registration/providers/is_send_btn_visible_state_provider.dart';
+import 'package:vendor_registration/servces/api_methods.dart';
 import 'package:vendor_registration/utils/colors.dart';
 import 'package:vendor_registration/utils/screen_utils.dart';
 import 'package:vendor_registration/view/mobile/components/mobile_custom_stepper.dart';
@@ -28,6 +35,7 @@ class _MobilePersonalDetailsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final imagesProv = ref.watch(imagesStateProvider);
     final sizedBox = SizedBox(
       width: screenUtils.height(context) * 0.014,
     );
@@ -116,7 +124,25 @@ class _MobilePersonalDetailsScreenState
                           ? appColors.darkOrange
                           : appColors.darkGrey,
                       btnName: "Save & Next",
-                      onTap: () {},
+                      onTap: () async {
+                        final box = Hive.box("user_id");
+                        final userId = box.get("id");
+                        print(userId);
+                        final res = await apiMethods.saveFilesAndKeys(
+                            file1: File(imagesProv.profileImage),
+                            file2: File(imagesProv.aadhaarImg),
+                            userId: userId,
+                            aadhaarNumber: aadhaarCardController.text,
+                            name: nameController.text,
+                            emailId: emailController.text,
+                            phoneNumber: mobileNumberController.text,
+                            apiUrl: apiConstants.updatePersonalDetails);
+                        if (res) {
+                          scaffoldMessage(context, "Saved Successfully");
+                        } else {
+                          scaffoldMessage(context, "Failed");
+                        }
+                      },
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
                   ],

@@ -12,9 +12,11 @@ class OTPWidget extends ConsumerWidget {
     super.key,
     required this.formKey,
     required this.otpFieldControllers,
+    required this.emailController,
   });
   final GlobalKey<FormState> formKey;
   final List<TextEditingController> otpFieldControllers;
+  final TextEditingController emailController;
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isTimerRecieved = ref.watch(isOTPTimerChangeNotifierProvider);
@@ -34,8 +36,9 @@ class OTPWidget extends ConsumerWidget {
                 style: copyWith,
               ),
               TextButton(
-                onPressed: () {
-                  validateOTP(formKey, otpFieldControllers, ref, context);
+                onPressed: () async {
+                  await validateOTP(formKey, otpFieldControllers,
+                      emailController, ref, context);
                 },
                 child: Text(
                   "Verify",

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:vendor_registration/constants/api_constants.dart';
 import 'package:vendor_registration/providers/is_send_btn_visible_state_provider.dart';
 import 'package:vendor_registration/providers/timer_change_notifier_provider.dart';
+import 'package:vendor_registration/servces/api_methods.dart';
 
 String? validateEmail(String? email, WidgetRef ref) {
   RegExp regex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
@@ -92,34 +94,35 @@ String? validatePasswordNew(String password) {
   return isValid ? null : errorMessage;
 }
 
-void validateOTP(
+Future<bool> validateOTP(
   GlobalKey<FormState> formKey,
   List<TextEditingController> controllers,
+  TextEditingController emailController,
   WidgetRef ref,
   BuildContext context,
-) {
+) async {
   if (formKey.currentState?.validate() ?? false) {
     String enteredOTP = controllers.map((controller) => controller.text).join();
-    if (enteredOTP == "123456") {
-      // Success: Proceed to next step
-      ref.read(isOTPErrorStateProvider.notifier).state = false;
-      ref.read(isVerifiedProvider.notifier).state = true;
-      ref.read(isOTPTimerChangeNotifierProvider).isOTpVisibleChnage(false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'OTP Verified!',
-          ),
-        ),
-      );
-    } else {
-      // Error: Wrong OTP
-      ref.read(isOTPErrorStateProvider.notifier).state = true;
-    }
+    final body = {
+      "email": emailController.text,
+      "otp": enteredOTP,
+    };
+    final res =
+        await apiMethods.postApi(body: body, apiName: apiConstants.verifyOTP);
+
+    return res;
+    // if (enteredOTP == "123456") {
+    //   // Success: Proceed to next step
+
+    // } else {
+    //   // Error: Wrong OTP
+    //   ref.read(isOTPErrorStateProvider.notifier).state = true;
+    // }
   } else {
     print("els");
     // Error: Wrong OTP
-    ref.read(isOTPErrorStateProvider.notifier).state = true;
+
+    return false;
   }
 }
 

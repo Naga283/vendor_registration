@@ -1,10 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:vendor_registration/common/expanded_btn.dart';
+import 'package:vendor_registration/common/scaffold_message.dart';
 import 'package:vendor_registration/common/vender_textformfield.dart';
+import 'package:vendor_registration/constants/api_constants.dart';
+import 'package:vendor_registration/providers/button_loadings.dart';
 import 'package:vendor_registration/providers/is_password_visible_state_provider.dart';
 import 'package:vendor_registration/providers/is_send_btn_visible_state_provider.dart';
 import 'package:vendor_registration/providers/timer_change_notifier_provider.dart';
+import 'package:vendor_registration/servces/api_methods.dart';
 import 'package:vendor_registration/utils/colors.dart';
 import 'package:vendor_registration/utils/screen_utils.dart';
 import 'package:vendor_registration/utils/validations.dart';
@@ -44,6 +51,7 @@ class _MobileRegistrationScreenState
     final isOTPVisible = ref.watch(isOTPTimerChangeNotifierProvider);
     final isOTPVerified = ref.watch(isVerifiedProvider);
     final isNextBtnEnabled = ref.watch(isNextBtnEnabledStateProvider);
+    final isBtnLoadings = ref.watch(buttonLoadingStateProvider);
     var sizedBox = SizedBox(
       height: screenUtils.height(context) * 0.0117,
     );
@@ -53,208 +61,246 @@ class _MobileRegistrationScreenState
 
     return Scaffold(
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                height: screenUtils.height(context) * 0.0277,
-              ),
-              const Center(child: TopIndiaZoneLogo()),
-              // sizedBox,
-              const SizedBox(
-                height: 20,
-              ),
-              Text(
-                "Register Your Online Store",
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontSize: 24,
-                      color: appColors.darkBlue,
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(
-                height: 15,
-              ),
-              Form(
-                key: formKey,
-                // onChanged: onChanged,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    VendorTextFormField(
-                      textEditingController: referenceCode,
-                      labelText: "Reference Code",
-                      helperText:
-                          "Enter the valid reference code, if applicable. Otherwise, please leave it blank.",
-                    ),
-                    sizedBox,
-                    Text(
-                      "Personal Info",
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w400,
-                            fontSize: 20,
-                          ),
-                    ),
-                    sizedBoxWithLow,
-                    TopTextFormFields(
-                      sizedBoxWithLow: sizedBoxWithLow,
-                      nameController: nameController,
-                      emailIdController: emailIdController,
-                      mobileNumberController: mobileNumberController,
-                      isOTPVerified: isOTPVerified,
-                      isSendBtnVisible: isSendBtnVisible,
-                      confirmPasswordController: confirmPasswordController,
-                      passwordController: passwordController,
-                    ),
-
-                    // sizedBoxWithLow,
-                    isOTPVisible.isOTPFieldVisible
-                        ? SizedBox(
-                            // width: screenUtils.width(context) * 0.276,
-                            child: MobileOTPWidget(
-                              formKey: otpFormField,
-                              otpFieldControllers: otpFormFieldsListController,
-                            ),
-                          )
-                        : const SizedBox.shrink(),
-                    sizedBoxWithLow,
-                    VendorTextFormField(
-                      textEditingController: passwordController,
-                      labelText: "Create Password",
-                      obscureText: !isPassVisibles.iscreatePassVisible,
-                      isRequired: true,
-
-                      errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: appColors.darkBlue)),
-                      focusErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: appColors.darkBlue)),
-                      height: isError
-                          ? screenUtils.height(context) * 0.18
-                          : 80, // Adjust height based on error state
-                      onChanged: (v) {
-                        final hasError = validatePasswordNew(v) != null;
-                        ref.read(isErrorStateProvider.notifier).state =
-                            hasError;
-                      },
-                      validator: (v) => validatePasswordNew(v ?? ""),
-
-                      errorTextStyle: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(
-                              fontWeight: FontWeight.w400,
-                              fontSize: 12,
-                              color: appColors.darkBlue),
-                      suffixIcon: Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: IconButton(
-                          onPressed: () {
-                            ref.read(isPasswordVisibleProvider.notifier).state =
-                                IsPasswordVisibleStateProvider(
-                              isConfirmPassVisible:
-                                  isPassVisibles.isConfirmPassVisible,
-                              iscreatePassVisible:
-                                  !isPassVisibles.iscreatePassVisible,
-                            );
-                          },
-                          icon: isPassVisibles.iscreatePassVisible
-                              ? const Icon(Icons.visibility_off)
-                              : const Icon(Icons.visibility),
-                        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 30,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  height: screenUtils.height(context) * 0.0277,
+                ),
+                const Center(child: TopIndiaZoneLogo()),
+                // sizedBox,
+                const SizedBox(
+                  height: 20,
+                ),
+                Text(
+                  "Register Your Online Store",
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontSize: 24,
+                        color: appColors.darkBlue,
+                        fontWeight: FontWeight.w700,
                       ),
-                    ),
+                ),
+                const SizedBox(
+                  height: 15,
+                ),
+                Form(
+                  key: formKey,
+                  // onChanged: onChanged,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      VendorTextFormField(
+                        textEditingController: referenceCode,
+                        labelText: "Reference Code",
+                        helperText:
+                            "Enter the valid reference code, if applicable. Otherwise, please leave it blank.",
+                      ),
+                      sizedBox,
+                      Text(
+                        "Personal Info",
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w400,
+                              fontSize: 20,
+                            ),
+                      ),
+                      sizedBoxWithLow,
+                      TopTextFormFields(
+                        sizedBoxWithLow: sizedBoxWithLow,
+                        nameController: nameController,
+                        emailIdController: emailIdController,
+                        mobileNumberController: mobileNumberController,
+                        isOTPVerified: isOTPVerified,
+                        isSendBtnVisible: isSendBtnVisible,
+                        confirmPasswordController: confirmPasswordController,
+                        passwordController: passwordController,
+                        referralNumber: referenceCode,
+                      ),
 
-                    sizedBoxWithLow,
-                    VendorTextFormField(
-                      textEditingController: confirmPasswordController,
-                      labelText: "Confirm Password",
-                      isRequired: true,
-                      height: 80,
-                      validator: (v) => validateReEnterPassword(
-                          v, passwordController.text, ref),
-                      obscureText: !isPassVisibles.isConfirmPassVisible,
-                      suffixIcon: Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: IconButton(
+                      // sizedBoxWithLow,
+                      isOTPVisible.isOTPFieldVisible
+                          ? SizedBox(
+                              // width: screenUtils.width(context) * 0.276,
+                              child: MobileOTPWidget(
+                                formKey: otpFormField,
+                                otpFieldControllers:
+                                    otpFormFieldsListController,
+                                emailController: emailIdController,
+                              ),
+                            )
+                          : const SizedBox.shrink(),
+                      sizedBoxWithLow,
+                      VendorTextFormField(
+                        textEditingController: passwordController,
+                        labelText: "Create Password",
+                        obscureText: !isPassVisibles.iscreatePassVisible,
+                        isRequired: true,
+
+                        errorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: appColors.darkBlue)),
+                        focusErrorBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: appColors.darkBlue)),
+                        height: isError
+                            ? screenUtils.height(context) * 0.18
+                            : 80, // Adjust height based on error state
+                        onChanged: (v) {
+                          final hasError = validatePasswordNew(v) != null;
+                          ref.read(isErrorStateProvider.notifier).state =
+                              hasError;
+                        },
+                        validator: (v) => validatePasswordNew(v ?? ""),
+
+                        errorTextStyle: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(
+                                fontWeight: FontWeight.w400,
+                                fontSize: 12,
+                                color: appColors.darkBlue),
+                        suffixIcon: Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: IconButton(
                             onPressed: () {
                               ref
                                   .read(isPasswordVisibleProvider.notifier)
                                   .state = IsPasswordVisibleStateProvider(
                                 isConfirmPassVisible:
-                                    !isPassVisibles.isConfirmPassVisible,
+                                    isPassVisibles.isConfirmPassVisible,
                                 iscreatePassVisible:
-                                    isPassVisibles.iscreatePassVisible,
+                                    !isPassVisibles.iscreatePassVisible,
                               );
                             },
-                            icon: isPassVisibles.isConfirmPassVisible
+                            icon: isPassVisibles.iscreatePassVisible
                                 ? const Icon(Icons.visibility_off)
-                                : const Icon(Icons.visibility)),
-                      ),
-                    ),
-                    sizedBoxWithLow,
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Center(
-                    child: ExpandedElevatedBtn(
-                      btnName: "Next",
-                      onTap: !isNextBtnEnabled
-                          ? () {}
-                          : () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) {
-                                    return const MobileVerificationEmailScreen();
-                                  },
-                                ),
-                              );
-                            },
-                      btnHeight: 43,
-                      bgCol: isNextBtnEnabled
-                          ? appColors.darkOrange
-                          : Colors.grey.shade400,
-                      btnWidth: screenUtils.width(context) * 0.744,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(
-                height: screenUtils.height(context) * 0.037,
-              ),
-              RichText(
-                text: TextSpan(
-                  text: "Already Registered? ",
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: appColors.darkGrey,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w400,
-                      ),
-                  children: [
-                    TextSpan(
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: appColors.darkOrange,
-                            decoration: TextDecoration.underline,
-                            decorationColor: appColors.darkOrange,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
+                                : const Icon(Icons.visibility),
                           ),
-                      text: "Login",
-                    )
+                        ),
+                      ),
+
+                      sizedBoxWithLow,
+                      VendorTextFormField(
+                        textEditingController: confirmPasswordController,
+                        labelText: "Confirm Password",
+                        isRequired: true,
+                        height: 80,
+                        validator: (v) => validateReEnterPassword(
+                            v, passwordController.text, ref),
+                        obscureText: !isPassVisibles.isConfirmPassVisible,
+                        suffixIcon: Padding(
+                          padding: const EdgeInsets.only(right: 8.0),
+                          child: IconButton(
+                              onPressed: () {
+                                ref
+                                    .read(isPasswordVisibleProvider.notifier)
+                                    .state = IsPasswordVisibleStateProvider(
+                                  isConfirmPassVisible:
+                                      !isPassVisibles.isConfirmPassVisible,
+                                  iscreatePassVisible:
+                                      isPassVisibles.iscreatePassVisible,
+                                );
+                              },
+                              icon: isPassVisibles.isConfirmPassVisible
+                                  ? const Icon(Icons.visibility_off)
+                                  : const Icon(Icons.visibility)),
+                        ),
+                      ),
+                      sizedBoxWithLow,
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Center(
+                      child: ExpandedElevatedBtn(
+                        btnName: "Next",
+                        isLoading: isBtnLoadings.isNextBtnLoading,
+                        onTap: !isNextBtnEnabled
+                            ? () {}
+                            : () async {
+                                final body = {
+                                  "email": emailIdController.text,
+                                  "password": confirmPasswordController.text,
+                                };
+                                ref
+                                        .read(buttonLoadingStateProvider.notifier)
+                                        .state =
+                                    ButtonLoadings(isNextBtnLoading: true);
+                                final a = await apiMethods.putApi(
+                                  body: body,
+                                  apiName: apiConstants.savePersonalDetails,
+                                );
+                                ref
+                                        .read(buttonLoadingStateProvider.notifier)
+                                        .state =
+                                    ButtonLoadings(isNextBtnLoading: false);
+
+                                if (a["is_valid"]) {
+                                  final box = Hive.box("user_id");
+                                  box.put(
+                                      "id",
+                                      (json.decode(a["response"])["user_id"])
+                                          .toString());
+                                  print(box.get("id"));
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) {
+                                        return const MobileVerificationEmailScreen();
+                                      },
+                                    ),
+                                  );
+                                } else {
+                                  scaffoldMessage(
+                                      context, "Something Went Wrong");
+                                }
+                              },
+                        btnHeight: 43,
+                        bgCol: isNextBtnEnabled
+                            ? appColors.darkOrange
+                            : Colors.grey.shade400,
+                        btnWidth: screenUtils.width(context) * 0.744,
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(
-                height: 30,
-              ),
-            ],
+                SizedBox(
+                  height: screenUtils.height(context) * 0.037,
+                ),
+                RichText(
+                  text: TextSpan(
+                    text: "Already Registered? ",
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: appColors.darkGrey,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                        ),
+                    children: [
+                      TextSpan(
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: appColors.darkOrange,
+                              decoration: TextDecoration.underline,
+                              decorationColor: appColors.darkOrange,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w400,
+                            ),
+                        text: "Login",
+                      )
+                    ],
+                  ),
+                ),
+                const SizedBox(
+                  height: 30,
+                ),
+              ],
+            ),
           ),
         ),
       ),

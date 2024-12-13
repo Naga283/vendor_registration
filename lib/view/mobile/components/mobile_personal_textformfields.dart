@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:vendor_registration/common/vender_textformfield.dart';
+import 'package:vendor_registration/providers/images_provider.dart';
 import 'package:vendor_registration/providers/is_send_btn_visible_state_provider.dart';
 import 'package:vendor_registration/utils/colors.dart';
 import 'package:vendor_registration/utils/screen_utils.dart';
@@ -40,6 +44,7 @@ class MobilePersonalDetailsTextformfield extends ConsumerWidget {
     }
 
     aadhaarCardController.addListener(validPersonal);
+    final imagesProv = ref.watch(imagesStateProvider);
     return Card(
       color: appColors.whiteColor,
       child: Padding(
@@ -83,6 +88,7 @@ class MobilePersonalDetailsTextformfield extends ConsumerWidget {
                   titleName: "Mobile Number",
                   isTitleRequired: true,
                   textEditingController: mobileNumberController,
+                  keyboardType: TextInputType.number,
                   prefixIcon: const Padding(
                     padding: EdgeInsets.only(
                       left: 16.0,
@@ -93,10 +99,12 @@ class MobilePersonalDetailsTextformfield extends ConsumerWidget {
                 ),
                 sizedBox,
                 ImageWidget(
-                  nameController: yourImgController,
+                  nameController:
+                      TextEditingController(text: imagesProv.profileImage),
                   title: 'Your Image Here',
                   widthFrom: width,
                   suffixWidth: 100,
+                  imageType: 0,
                 ),
                 VendorTextFormField(
                   isFilled: true,
@@ -129,10 +137,12 @@ class MobilePersonalDetailsTextformfield extends ConsumerWidget {
                 ),
                 sizedBox,
                 ImageWidget(
-                  nameController: aadhaarImgController,
+                  nameController:
+                      TextEditingController(text: imagesProv.aadhaarImg),
                   title: 'Aadhaar Card Image',
                   widthFrom: width,
                   suffixWidth: 100,
+                  imageType: 1,
                 ),
               ],
             ),
@@ -143,52 +153,75 @@ class MobilePersonalDetailsTextformfield extends ConsumerWidget {
   }
 }
 
-class ImageWidget extends StatelessWidget {
+class ImageWidget extends ConsumerWidget {
   const ImageWidget({
     super.key,
     required this.nameController,
     required this.title,
     this.widthFrom,
     this.suffixWidth,
+    required this.imageType,
   });
 
   final TextEditingController nameController;
   final String title;
   final double? widthFrom;
   final double? suffixWidth;
+  final int imageType;
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     var width = widthFrom ?? screenUtils.width(context) * 0.2548;
+    final imagesPro = ref.watch(imagesStateProvider);
     return VendorTextFormField(
       width: width,
       titleName: title,
       isTitleRequired: true,
       textEditingController: nameController,
+      isReadOnly: true,
       // contentPadding: EdgeInsets.zero,
-      suffixIcon: Container(
-        height: 50,
-        width: suffixWidth ?? screenUtils.width(context) * 0.077,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: appColors.lightPrimary,
-          border: const Border(
-            left: BorderSide(),
+      suffixIcon: GestureDetector(
+        onTap: () async {
+          final ImagePicker picker = ImagePicker();
+// Pick an image.
+          final XFile? image =
+              await picker.pickImage(source: ImageSource.gallery);
+          print("${image?.name}");
+          if (imageType == 0) {
+            ref.read(imagesStateProvider.notifier).state = ImagesProvider(
+                profileImage: image?.path ?? "",
+                aadhaarImg: imagesPro.aadhaarImg);
+          } else {
+            ref.read(imagesStateProvider.notifier).state = ImagesProvider(
+              profileImage: imagesPro.profileImage,
+              aadhaarImg: image?.path ?? "",
+            );
+          }
+        },
+        child: Container(
+          height: 50,
+          width: suffixWidth ?? screenUtils.width(context) * 0.077,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: appColors.lightPrimary,
+            border: const Border(
+              left: BorderSide(),
+            ),
+            borderRadius: const BorderRadius.only(
+              bottomRight: Radius.circular(5),
+              topRight: Radius.circular(5),
+            ),
           ),
-          borderRadius: const BorderRadius.only(
-            bottomRight: Radius.circular(5),
-            topRight: Radius.circular(5),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.only(right: 10),
-          child: Text(
-            "Browse File",
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: appColors.darkBlue,
-                  fontSize: 12,
-                ),
-            textAlign: TextAlign.center,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 10),
+            child: Text(
+              "Browse File",
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: appColors.darkBlue,
+                    fontSize: 12,
+                  ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ),
